@@ -1,0 +1,43 @@
+apply plugin : 'maven'
+
+ext.depVars = {}
+
+def depProperties = ['depGroup', 'depVersion', 'depArtifact', 'depExtension', 'depFile']
+
+def usageMsg = "Usage:  gradle "
+depProperties.each {
+	usageMsg += "-P${it}=... "
+}
+
+depProperties.each 
+{
+	if (!project.hasProperty(it))
+	{
+		throw new GradleException( "A property was missing\n\n"+usageMsg )
+	}
+	depVars[it] = property(it)+""
+}
+
+def depFile = file(depVars['depFile'])
+if (!depFile.isFile())
+{
+	throw new GradleException("${depFile.absolutePath} either does not exist or is not a file (Note: it must exist within the Gradle project dir)")
+}
+
+
+artifacts {
+	archives file: depFile, name: depVars['depArtifact']
+}
+
+uploadArchives {
+    repositories {
+        mavenDeployer {
+            repository ( url: "file://localhost${project.projectDir}/repo" )
+            pom.version = depVars['depVersion']
+            pom.artifactId = depVars['depArtifact']
+            pom.groupId = depVars['depGroup']
+        }
+    }
+}
+
+defaultTasks 'uploadArchives'
