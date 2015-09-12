@@ -1,0 +1,6 @@
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '2.6'
+}
+
+defaultTasks 'wrapper'
