@@ -2,26 +2,32 @@ apply plugin : 'maven'
 
 ext.depVars = {}
 
-def depProperties = ['depGroup', 'depVersion', 'depArtifact', 'depExtension', 'depFile']
+def depProperties = ['depGroup', 'depVersion', 'depArtifact', 'depFile']
 
 def usageMsg = "Usage:  gradle "
+def missingProperties = []
 depProperties.each {
+	if (!project.hasProperty(it)) {
+		missingProperties += [it]
+	} else {
+		depVars[it] = (String) property(it)
+	}
 	usageMsg += "-P${it}=... "
 }
 
-depProperties.each 
-{
-	if (!project.hasProperty(it))
-	{
-		throw new GradleException( "A property was missing\n\n"+usageMsg )
-	}
-	depVars[it] = property(it)+""
+if (missingProperties.size > 0) {
+	throw new GradleException( "One or more properties were missing. Missing: ${missingProperties.join(' ')}.\n${usageMsg}")
 }
 
-def depFile = file(depVars['depFile'])
-if (!depFile.isFile())
-{
-	throw new GradleException("${depFile.absolutePath} either does not exist or is not a file (Note: it must exist within the Gradle project dir)")
+def depFile;
+def depFilePath = depVars['depFile']
+[ file(depFilePath), new File(depFilePath) ].each {
+	if (it.isFile()) {
+		depFile = it
+	}
+}
+if (depFile == null) {
+	throw new GradleException("No file could be found at ${depFilePath} (Note: using ~ in the path won't work)")
 }
 
 
@@ -32,7 +38,7 @@ artifacts {
 uploadArchives {
     repositories {
         mavenDeployer {
-            repository ( url: "file://localhost${project.projectDir}/repo" )
+            repository ( url: "file://localhost${projectDir}/repo" )
             pom.version = depVars['depVersion']
             pom.artifactId = depVars['depArtifact']
             pom.groupId = depVars['depGroup']
